@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_DB: eprocurement
+      POSTGRES_USER: eprocurement
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?Set LOCAL_DB_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U eprocurement"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis:7.4.2-bookworm
+    command: [redis-server, --appendonly, "yes"]
+    volumes: [redisdata:/data]
+  scanner:
+    image: clamav/clamav:1.4.3
+  mail:
+    image: axllent/mailpit:v1.27.4
+    ports: ["127.0.0.1:8025:8025"]
+  app: &app
+    build: .
+    env_file: [backend/.env]
+    environment: &appenv
+      APP_ENV: local
+      APP_URL: http://localhost:8080
+      SESSION_SECURE_COOKIE: "false"
+      DB_HOST: postgres
+      DB_DATABASE: eprocurement
+      DB_USERNAME: eprocurement
+      DB_PASSWORD: ${LOCAL_DB_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SCANNER_HOST: scanner
+      MAIL_MAILER: smtp
+      MAIL_HOST: mail
+      MAIL_PORT: 1025
+      FILESYSTEM_DISK: local
+      SERVICE_ROLE: web
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: [attachments:/app/storage/app]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+    # Run migration explicitly once before first web startup.
+  worker:
+    <<: *app
+    ports: []
+    environment:
+      <<: *appenv
+      SERVICE_ROLE: worker
+  scheduler:
+    <<: *app
+    ports: []
+    environment:
+      <<: *appenv
+      SERVICE_ROLE: scheduler
+volumes:
+  pgdata:
+  redisdata:
+  attachments:

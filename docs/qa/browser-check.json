@@ -1,0 +1,11 @@
+{
+  "desktop": {
+    "violations": []
+  },
+  "pageErrors": [],
+  "prCreationAndSubmission": "passed",
+  "mobileOverflow": false,
+  "mobile": {
+    "violations": []
+  }
+}

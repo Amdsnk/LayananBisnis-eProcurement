@@ -1,0 +1,254 @@
+PROMPT MASTER — LAYANANBISNIS EPROCUREMENT
+Satu instruksi untuk implementasi menyeluruh, pengujian, dokumentasi, dan paket deployment
+
+PERAN DAN TUJUAN
+
+Anda adalah Senior Full Stack Engineer sekaligus Solution Architect yang bertanggung jawab menyerahkan aplikasi eProcurement LayananBisnis yang benar-benar berfungsi. Kerjakan implementasi nyata di workspace/repository yang tersedia: frontend, backend, database, workflow, integrasi, pengujian, dokumentasi, dan deployment artifacts. Jangan berhenti pada proposal, backlog, desain, mockup, skeleton, atau halaman dengan data palsu.
+
+Ini satu penugasan menyeluruh. Jalankan tahapan implementasi dan pemeriksaan secara internal tanpa meminta pengguna mengetik “lanjutkan” untuk setiap modul. Satu instruksi bukan berarti seluruh pekerjaan harus muat dalam satu respons atau bahwa pemeriksaan mutu boleh dihilangkan. Jika batas runtime atau konteks tercapai, simpan checkpoint yang dapat digunakan untuk melanjutkan; jangan menyatakan pekerjaan selesai.
+
+Deskripsi awal adalah kebutuhan developer, bukan spesifikasi bisnis lengkap. Modul dan aturan di bawah merupakan baseline usulan yang harus diimplementasikan, dengan asumsi yang tercatat. Jangan mengklaim bahwa baseline ini telah disetujui stakeholder atau merupakan seluruh kebutuhan klien yang belum diketahui.
+
+KONTEKS, BATAS, DAN ASUMSI DEFAULT
+
+1. Nama produk: LayananBisnis eProcurement. Pemilik/provider dapat dikonfigurasi. Bahasa utama Indonesia; sediakan English melalui i18n. Zona waktu default Asia/Jakarta; simpan timestamp UTC. Mata uang default IDR; sediakan transaksi multi-currency dengan kurs tersimpan per dokumen.
+2. Baseline adalah pengadaan perusahaan swasta, bukan otomatis aplikasi pengadaan pemerintah atau aplikasi yang telah mendapat sertifikasi. Jangan mengklaim kepatuhan hukum, perpajakan, tanda tangan elektronik tersertifikasi, atau standar tertentu tanpa bukti verifikasi.
+3. Mendukung beberapa organisasi pelanggan/tenant, beberapa badan usaha di dalam tenant, cabang, departemen, gudang, dan cost center. Definisikan batas tenant, legal entity, dan vendor secara jelas. Vendor dapat berelasi dengan lebih dari satu pembeli melalui keanggotaan terpisah; dokumen bisnis tetap terisolasi.
+4. Tidak memproses transfer uang secara default. Finance merekam status pembayaran dan referensi ERP; transaksi pembayaran bank memerlukan integrasi serta otorisasi terpisah.
+5. Target baseline pengujian: 20 tenant, 2.000 pengguna internal terdaftar, 10.000 akun vendor, 200 sesi aktif bersamaan, 50 request/detik selama 30 menit, hingga 1 juta baris dokumen bisnis, dan lampiran hingga 25 MB/file yang dapat dikonfigurasi. Target ini asumsi sizing, bukan hasil benchmark atau janji kapasitas.
+6. Deskripsi sumber menyebut 50 sprint × 10 hari kerja = 500 hari kerja dan maksimum Rp10.000.000/sprint = plafon aritmetis Rp500.000.000 apabila seluruh 50 sprint dibayar pada batas maksimum. Ini bukan otomatis harga kontrak, anggaran infrastruktur, ataupun bukti proyek selesai lebih cepat. Jangan menyamakan satu instruksi AI dengan penghapusan kebutuhan validasi dan UAT.
+7. Kebutuhan Java pada deskripsi sumber ambigu. Default frontend React + TypeScript dan backend PHP Laravel. Jangan menambahkan layanan Java hanya agar daftar teknologi terlihat lengkap. Catat kebutuhan Java sebagai keputusan yang perlu dikonfirmasi apabila klien memiliki integrasi/komponen Java wajib.
+
+CARA KERJA
+
+1. Periksa repository, petunjuk lokal, dan sistem yang sudah ada sebelum mengubahnya. Gunakan stack yang sudah berjalan bila migrasi stack akan merusak kompatibilitas; dokumentasikan penyimpangan.
+2. Buat REQUIREMENTS.md dengan ID persyaratan, ASSUMPTIONS.md, DECISIONS.md, dan matriks requirement → implementasi → test → bukti. Susun urutan dependensi internal, lalu segera implementasikan.
+3. Pertanyaan hanya untuk hal yang benar-benar menghalangi pekerjaan aman, seperti kontrak API ERP yang tidak tersedia, aturan persetujuan yang bertentangan, atau akses deployment. Kelompokkan pertanyaan penting; lanjutkan modul yang tidak bergantung pada jawabannya. Untuk keputusan rutin, gunakan default dan catat.
+4. Jangan membuat kredensial nyata, menebak endpoint SAP, memalsukan keberhasilan integrasi, atau mengarang hasil test. Jika dependensi eksternal belum tersedia, implementasikan interface, adapter, contract test, dan sandbox terpisah; tandai integrasi produksi sebagai BLOCKED.
+5. Jangan mengurangi ruang lingkup diam-diam. Catat semua bagian sebagai IMPLEMENTED, VERIFIED, BLOCKED, atau NOT IMPLEMENTED. Status “implemented” tidak otomatis berarti “verified”.
+6. Selesaikan aplikasi lokal/staging, paket konfigurasi, dan bukti pengujian sebelum meminta tindakan eksternal yang belum diotorisasi. Jangan mengirim undangan, email vendor nyata, purchase order nyata, atau mengubah ERP produksi hanya untuk testing.
+
+ARSITEKTUR DAN TEKNOLOGI
+
+1. Default arsitektur modular monolith, bukan microservices tanpa kebutuhan. Modul domain memiliki boundary yang jelas dan dapat dikembangkan secara terpisah.
+2. Frontend React + TypeScript strict, build tool stabil, routing, query/cache server state, validasi form, dan design system komponen reusable.
+3. Backend PHP Laravel versi stabil yang masih didukung pada saat implementasi. Jika CodeIgniter wajib karena repository/klien, gunakan CodeIgniter dan dokumentasikan padanannya. Verifikasi kompatibilitas versi melalui dokumentasi resmi; pin dependency, commit lockfile, hindari tag image “latest”.
+4. PostgreSQL sebagai default relational database; Redis untuk queue/cache/rate limit; S3-compatible private object storage untuk lampiran. Gunakan PostgreSQL sebagai sumber kebenaran transaksi, bukan Redis.
+5. API REST /api/v1, OpenAPI, pagination, filtering, sorting yang dibatasi allowlist, error response konsisten, request correlation ID. Integrasi SOAP melalui adapter backend dan WSDL contract, bukan akses langsung browser ke ERP.
+6. Pisahkan web/API, queue worker, scheduler, database, cache, dan object storage. Background jobs untuk import, laporan besar, ekspor, notifikasi, pemindaian lampiran, dan sinkronisasi ERP.
+7. Gunakan transaksi database, foreign key, unique constraint tenant-scoped, index sesuai query nyata, optimistic locking/version untuk perubahan, dan row locking untuk persaingan kritis. Gunakan transactional outbox untuk event yang keluar dari transaksi.
+8. Uang dan kuantitas memakai decimal/numeric, tidak floating point. Tentukan presisi, rounding, satuan, diskon, kurs, pajak, dan urutan kalkulasi secara eksplisit. Pajak configurable dengan masa berlaku; jangan hardcode tarif sebagai ketentuan hukum terkini.
+9. Autentikasi web same-origin dengan secure HttpOnly session cookie dan proteksi CSRF sebagai default. Integrasi server menggunakan token scoped/rotatable. Tambahkan SSO OIDC melalui provider configurable dan test provider lokal; integrasi IdP asli tetap memerlukan konfigurasi nyata.
+
+MODEL AKSES DAN PEMISAHAN TUGAS
+
+Implementasikan RBAC ditambah scope tenant, badan usaha, departemen, cost center, ownership, dan penugasan workflow. Buat matriks izin per tindakan, bukan hanya per menu.
+
+Peran baseline:
+- Platform operator: konfigurasi platform dan tenant; tidak otomatis boleh membaca isi penawaran atau dokumen tenant.
+- Tenant administrator: pengguna, struktur organisasi, policy, dan master data tenant.
+- Requester: membuat kebutuhan dan melihat dokumen yang diizinkan.
+- Department head/budget owner: persetujuan sesuai scope dan limit.
+- Procurement officer: sourcing, tender, negosiasi, dan pembuatan PO.
+- Procurement manager: pengawasan dan persetujuan pengadaan.
+- Evaluator: menilai tender yang ditugaskan; akses mengikuti fase.
+- Legal/contract officer: kontrak dan amendment.
+- Warehouse/receiver: penerimaan barang dan jasa sesuai penugasan.
+- Finance/AP: invoice, matching, dan status pembayaran.
+- Auditor: akses read-only sesuai mandat dan periode.
+- Vendor administrator dan vendor staff: profil vendor dan transaksi miliknya.
+
+Larangan wajib: pengguna tidak dapat menyetujui permintaannya sendiri; supplier tidak boleh melihat penawaran pesaing; receiver tidak otomatis berhak mengubah PO; finance tidak bisa meloloskan mismatch tanpa otorisasi; administrator biasa tidak dapat menghapus audit. Delegasi tetap mempertahankan larangan konflik kepentingan. Emergency access harus berbatas waktu, beralasan, disetujui, dan diaudit.
+
+MODUL FUNGSIONAL WAJIB
+
+A. Dashboard dan workbench
+- Dashboard berbeda per peran: tugas persetujuan, PR terbuka, tender berjalan, PO, penerimaan, invoice mismatch, kontrak berakhir, dan status integrasi.
+- Semua angka berasal dari database/API nyata dan tunduk pada permission. KPI menjelaskan definisi dan periode; savings tidak dibuat dari formula yang tidak terdokumentasi.
+- Inbox tindakan, saved filter, pencarian dengan kontrol akses, notifikasi in-app dan email adapter, reminder dan escalation configurable.
+
+B. Organisasi, master data, dan policy
+- Tenant, badan usaha, cabang, departemen, cost center, pengguna, gudang, kategori, item/jasa, UOM dan konversi valid, mata uang/kurs, tax code, payment terms, nomor dokumen, dan spending threshold.
+- Penomoran dokumen aman terhadap concurrency dan unik sesuai scope.
+- Import CSV/XLSX dengan template, preview, validasi per baris, dry-run, idempotency/deduplication, laporan kegagalan, dan audit. Jangan menjalankan formula spreadsheet dari file impor.
+- Master data yang telah direferensikan tidak dihapus permanen; nonaktifkan atau versikan.
+
+C. Vendor management dan portal
+- Registrasi/invitation, verifikasi email, profil perusahaan, kontak, kategori usaha, rekening, NPWP/identitas yang configurable, dokumen kualifikasi dan masa berlaku.
+- Status draft, submitted, under_review, approved, rejected, suspended; alasan dan riwayat perubahan.
+- Pemeriksaan duplicate vendor, workflow onboarding, perubahan data sensitif dengan maker-checker, whitelist/blacklist dan expiry reminder.
+- Penilaian performa vendor dengan kriteria berbobot, periode, bukti, dan historis; perubahan skor tidak mengubah evaluasi historis diam-diam.
+- Portal vendor: undangan RFQ/tender, klarifikasi, submission, revisi sebelum tenggat, PO, pengakuan PO, delivery notice, invoice, dan notifikasi.
+
+D. Perencanaan pengadaan dan budget
+- Procurement plan per periode, sumber anggaran, kategori, jadwal, estimasi, dan PIC.
+- Budget ledger membedakan available, reserved, committed, actual, released. Definisikan cara reservation PR dikonversi ke commitment PO tanpa double counting.
+- Kontrol anggaran saat submit/approve/award/PO sesuai policy, dengan locking untuk mencegah concurrent overspend.
+- Transfer/revisi anggaran melalui persetujuan dan audit. Override hanya oleh role khusus dengan alasan dan approval.
+- Multi-currency menggunakan nilai dan kurs snapshot. Definisikan pembatalan, penerimaan parsial, invoice parsial, dan release saldo budget.
+
+E. Purchase Requisition / PR
+- Header dan multi-line barang/jasa, spesifikasi, lampiran, tanggal dibutuhkan, delivery location, cost center, estimasi harga/pajak, dan justifikasi.
+- Draft, submitted, in_approval, approved, rejected, returned, cancelled, partially_sourced, sourced/closed dengan transition map eksplisit.
+- Draft boleh diedit; dokumen submitted menggunakan amendment/revision dan persetujuan ulang sesuai perubahan material.
+- Approval bertingkat/paralel berdasarkan nominal, kategori, badan usaha, cost center, dan pengecualian; split/merge sourcing tetap menjaga relasi serta sisa kuantitas.
+
+F. RFQ, RFP, tender, dan sourcing
+- Sourcing dari satu atau beberapa PR, procurement method configurable, undangan vendor, jadwal, persyaratan, dokumen, pertanyaan dan jawaban, addendum, lot/item, dan kriteria evaluasi.
+- Metode minimal: direct purchase dengan justifikasi, RFQ competitive, dan tender/RFP. Jangan menyamakan seluruh metode sebagai satu form.
+- Tender satu atau dua envelope configurable: technical dan commercial. Commercial tidak dapat dibuka sebelum gerbang technical yang diperlukan.
+- Deadline ditentukan server, tidak bergantung jam browser; dukung waktu UTC dan tampilan lokal. Job scheduler yang terlambat tidak boleh membuat deadline bisa dilewati.
+- Vendor dapat menyimpan draft dan submit/revise sebelum deadline. Receipt mencatat submission ID, timestamp, versi, dan hash attachment. Withdraw/resubmit tunduk aturan tender.
+- Penawaran disegel sebelum waktu pembukaan; API, ekspor, pencarian, log, preview, storage URL, job, dan role admin biasa tidak boleh membocorkan isi. Gunakan enkripsi envelope dengan pengelolaan kunci terpisah; jelaskan threat model dan batas terhadap operator infrastruktur.
+- Pembukaan tender dengan otorisasi/quorum configurable, timestamp, berita acara, dan audit. Dukungan extension/addendum dengan pemberitahuan serta aturan submission lama.
+- Comparison matrix kuantitas, unit price, diskon, pajak, freight, currency, kurs, total landed cost, lead time, payment terms, dan technical compliance.
+- Scoring berbobot yang totalnya tervalidasi; kriteria dibekukan saat publikasi; evaluator assignment, conflict declaration, komentar, evidence, consensus, dan approval award.
+- Partial award/multi-vendor award sesuai item/lot; menjaga total awarded quantity dan budget. Sertakan negosiasi, revisi penawaran terkontrol, alasan keputusan, serta award approval.
+- Cancellation, failed tender, re-tender, dan direct-award exception harus memiliki alasan dan workflow.
+
+G. Kontrak
+- Draft kontrak dari award, template versioned, scope, nilai, periode, deliverables, SLA, milestones, payment terms, lampiran, dan approval legal/procurement.
+- Status, versi, amendment, renewal, termination, consumption, nilai tersisa, dan reminder expiry.
+- Call-off PO terhadap kontrak/framework agreement dengan quantity/value limit atomik.
+- PDF kontrak dan approval evidence. E-signature adapter tersedia, tetapi tidak mengklaim tanda tangan tersertifikasi sebelum provider legal dan integrasi nyata diverifikasi.
+
+H. Purchase Order / PO
+- PO dari PR/award/kontrak dengan multi-line, vendor, alamat, delivery schedule, price/tax snapshot, payment terms, dan approval.
+- Draft, pending_approval, approved, issued, acknowledged, partially_received, received, closed, cancelled; tentukan aturan status turunan dengan jelas.
+- PDF PO, email delivery melalui outbox, vendor acknowledgement, change order versioned dan persetujuan ulang, serta histori issuance.
+- PO approved tidak dapat diedit bebas. Pembatalan sebagian/seluruhnya memeriksa receipt/invoice terkait dan pelepasan commitment.
+- Kiriman ERP menggunakan external ID/idempotency; gagal integrasi tidak menghapus dokumen lokal atau membuat status sukses palsu.
+
+I. Penerimaan barang dan jasa
+- Goods receipt dan service acceptance terhadap line PO, partial receipt, rejected quantity, inspection, evidence, delivery note, penerima, dan tanggal.
+- Prevent over-receipt di luar tolerance; tolerance configurable dan exception approval. Cegah double receipt akibat submit ulang.
+- Return, reversal, dan correction menggunakan transaksi kompensasi/riwayat; jangan menulis ulang dokumen final tanpa jejak.
+- Inventory hanya mencatat penerimaan dalam cakupan ini; jangan mengklaim full warehouse management tanpa membangun modul tersebut.
+
+J. Invoice, three-way matching, dan pembayaran
+- Vendor mengirim invoice dengan invoice number, tanggal, currency, line, lampiran, referensi PO/receipt, pajak dan payment terms.
+- Deteksi invoice duplikat dengan scope legal entity/vendor dan nomor ternormalisasi, serta warning duplicate amount/date/hash; credit note dimodelkan terpisah.
+- Two-way matching hanya bila policy jasa mengizinkan; three-way matching membandingkan PO, receipt/service acceptance, dan invoice secara line-level.
+- Partial invoice, tolerance amount/quantity/tax, mismatch queue, hold, dispute, exception approval, credit note, dan allocation yang mencegah over-invoicing.
+- Due date, AP approval, ERP posting, dan payment status/reference. ERP/finance sebagai sumber kebenaran pembayaran yang terdokumentasi.
+- Tidak menyimpan data kartu atau memindahkan dana dalam baseline.
+
+K. Laporan dan audit
+- Spend menurut periode/vendor/kategori/cost center, PR-to-PO cycle time, approval SLA, tender participation, budget utilization, delivery performance, AP aging, mismatch, dan integration reconciliation.
+- Export CSV/XLSX/PDF yang scope-nya sama dengan UI; job async untuk data besar; signed download kedaluwarsa. Netralisasi spreadsheet formula injection.
+- Audit event append-only: actor, tenant, action, object/version, timestamp, before/after yang disanitasi, alasan, correlation ID. Hindari menyimpan password/token/isi penawaran tersegel dalam audit.
+- Larang update/delete audit oleh akun aplikasi. Hash chaining dapat membantu deteksi perubahan, tetapi bukan bukti immutable sendiri; implementasikan ekspor ke storage retention/WORM bila tersedia dan dokumentasikan kontrol operator/backup.
+- Retention, arsip, legal hold, dan pemusnahan data configurable; dokumen transaksi final menggunakan void/reversal, bukan destructive delete.
+
+WORKFLOW ENGINE DAN INVARIANT
+
+1. Gunakan state machine dan aturan transisi backend. Frontend tidak menjadi sumber otorisasi.
+2. Policy approval versioned; dokumen yang berjalan menyimpan snapshot rule, approver, limit, dan quorum. Perubahan policy tidak mengubah workflow aktif diam-diam.
+3. Dukungan sequential/parallel approval, return for revision, reject, cancel, delegation dengan masa berlaku, escalation, dan reassignment beralasan. Jangan auto-approve hanya karena deadline lewat.
+4. Maker-checker, larangan self-approval, dan scope akses diuji di setiap jalur termasuk API, import, admin, job, dan delegasi.
+5. Atomicity: award, PO, budget, receipt, invoice, dan approval tidak boleh menghasilkan state separuh jadi. Tetapkan invariant dan test race condition.
+6. Idempotency untuk submit/approve/award/issue/receive/invoice dan external event; key di-scope tenant/action, mengikat payload hash, mencegah request sama dieksekusi ganda.
+7. Out-of-order ERP event memakai revision/sequence dan aturan konflik. Retry tidak boleh menggandakan PO, invoice, payment reference, atau notifikasi.
+
+DATABASE DAN DOKUMEN TEKNIS
+
+Sediakan schema, migration, ERD rendered/source, data dictionary, indeks dan constraint. Entitas minimal mencakup tenant, legal entity, membership, role/permission, organization unit, cost center, item/UOM, currency/exchange rate, tax version, vendor/buyer relationship, vendor qualification, budget/ledger, procurement plan, PR/line/revision, sourcing event/lot/criteria/invitation, bid/version/envelope, evaluation/score, award/line, contract/amendment, PO/line/change order, receipt/line/return, invoice/line/allocation/match/credit note, payment reference, workflow definition/version/instance/step/action/delegation, attachment, notification/outbox, audit event, ERP mapping/integration job/reconciliation, dan idempotency record.
+
+Setiap query, foreign key, attachment dan background job menjaga tenant scope; gunakan composite constraint bila tepat untuk mencegah cross-tenant relation. Tenant context berasal dari membership tervalidasi, bukan body/header yang dipercaya begitu saja. Jika PostgreSQL RLS digunakan, dokumentasikan connection pooling, role database, bypass privilege, dan set/reset tenant context; uji kebocoran antar-request dan job.
+
+INTEGRASI REST, SOAP, SAP, DAN ERP
+
+1. Connector framework configurable per tenant/legal entity: endpoint, auth, mapping, timeout, rate limit, retry dengan exponential backoff/jitter, circuit breaker, dead-letter queue, replay berizin, dan health dashboard.
+2. REST adapter, SOAP client dengan WSDL fixture dan validation, serta SAP adapter boundary. Pilih protokol SAP hanya berdasarkan dokumentasi sistem nyata—OData, SOAP, IDoc atau mekanisme lain—jangan mengklaim semuanya selesai tanpa kontrak.
+3. Mapping minimal vendor, material/item, cost center, currency/tax, PO, receipt/service entry, invoice, dan payment status. Tentukan system of record dan arah sinkronisasi per entity/field.
+4. Idempotent upsert, external ID registry, reconciliation, conflict policy, event deduplication, dan audit perubahan.
+5. Webhook authentication/signature, timestamp/replay protection, request size limits, endpoint allowlist dan mitigasi SSRF. SOAP XML menonaktifkan external entities/DTD dan memakai batas parsing.
+6. Sandbox ERP terpisah dapat mensimulasikan sukses, timeout, rate limit, duplicate event, dan kegagalan parsial. Production mode tidak boleh memakai fake adapter atau fallback “success”.
+7. Integrasi email SMTP/API, SSO, e-signature dan malware scanner memiliki configuration schema, diagnostics, test, serta status readiness. Kredensial hanya melalui secret store/environment.
+
+UI/UX DAN AKSESIBILITAS
+
+1. Bangun dashboard enterprise dengan identitas visual custom: hierarki tipografi, navigasi sidebar, breadcrumbs, workbench, status timeline, comparison matrix, dan chart yang relevan. Hindari setiap halaman menjadi tabel generik yang sama.
+2. Prioritas keterbacaan dokumen dan efisiensi transaksi. Gunakan motion ringan; hormati reduced-motion. Tidak perlu running text dekoratif atau foto stok yang mengganggu pekerjaan.
+3. Desain responsif untuk desktop, tablet, dan mobile; tabel lebar memiliki scroll yang jelas dan tidak menyebabkan seluruh halaman overflow. Approval dan portal vendor dapat digunakan di ponsel.
+4. Semua halaman mempunyai loading, empty, error, permission-denied, retry dan success state; backend field error terpetakan ke form. Cegah double submit dan silent data loss.
+5. Form multi-line, autosave draft yang aman, upload progress, preview dokumen aman, destructive-action confirmation, unsaved changes warning, serta diff revisi.
+6. Accessibility target WCAG 2.2 AA untuk bagian yang berlaku: keyboard navigation, focus visible, label/semantics, contrast, screen reader, error identification, dan status selain warna. Automated audit saja tidak cukup; dokumentasikan manual checks.
+7. Bahasa Indonesia dan English lengkap termasuk validasi, email, PDF, currency/date format. Light/dark mode hanya bila keduanya teruji; branding configurable per tenant tanpa arbitrary script injection.
+8. Semua tombol, filter, chart drill-down, paginasi dan ekspor berfungsi nyata. Tidak boleh tombol dekoratif, angka random, atau list hardcoded dalam mode produksi.
+
+KEAMANAN
+
+1. Buat threat model: account takeover, tenant escape, IDOR/BOLA, tender leakage, fraudulent vendor-bank change, approval bypass, over-budget race, duplicate ERP posting, file abuse, dan operator access.
+2. Petakan kontrol aplikasi ke OWASP ASVS versi stabil yang diverifikasi saat implementasi; target baseline Level 2 pada persyaratan yang applicable. Laporkan kontrol implemented/tested/not assessed; jangan menyebut “certified”.
+3. MFA wajib untuk privileged users dan aksi sensitif; recovery code, secure enrollment/recovery, session revocation, idle/absolute timeout, rate limit, dan password hashing modern.
+4. Terapkan authorization server-side, CSRF, XSS protection, parameterized queries, safe HTML, secure headers/CSP, CORS terbatas, TLS, dan secret redaction. Pengguna suspended/revoked tidak mempertahankan akses melalui session/job/export lama.
+5. Lampiran private, allowlist format, MIME/content verification, random object key, size limit, quarantine dan malware scan. Pending/quarantined/failed scan tidak boleh diunduh atau digunakan sebagai dokumen final. Test malicious upload dan parser bomb.
+6. Encryption in transit dan at rest sesuai infrastruktur; kunci managed dan dapat dirotasi. Bedakan encryption storage biasa dari kontrol khusus sealed bid.
+7. Dependency audit, SAST, secret scanning, container scanning, SBOM, dan pengujian dinamis yang relevan. Critical/high findings harus diperbaiki atau memiliki risk acceptance eksplisit sebelum release.
+8. Tidak ada default admin password di production, secret dalam repository, debug toolbar, stack trace publik, log berisi kredensial, atau data demo otomatis di production.
+
+INFRASTRUKTUR DAN OPERASIONAL
+
+1. Sediakan Dockerfile multi-stage dan Docker Compose untuk lokal: app, frontend/proxy, PostgreSQL, Redis, worker, scheduler, object storage, mail sandbox, dan scanner bila dibutuhkan. Production config terpisah dan hardened.
+2. Sediakan .env.example lengkap tanpa secret; validasi fail-fast untuk konfigurasi wajib. Bootstrap admin melalui prosedur aman sekali pakai; production menolak demo credentials dan mock connector aktif.
+3. CI/CD: lint, typecheck, unit/integration tests dengan database nyata, frontend build, migration test, E2E, security scans, artifact build, deployment ke staging, smoke test dan release gate.
+4. Structured logs, correlation ID, metric/alert untuk error rate, latency, database saturation, queue backlog, failed jobs, scheduler heartbeat, ERP failure, backup failure, dan storage capacity. Health/liveness/readiness endpoint tidak membocorkan secret.
+5. Migration production memakai strategi backward-compatible/expand-contract bila diperlukan. Rollback aplikasi tidak boleh diasumsikan dapat membatalkan perubahan data; sediakan prosedur roll-forward dan backup/restore.
+6. Backup database dengan PITR bila platform mendukung, object storage versioning/retention, encryption, dan restore drill. Target awal RPO ≤15 menit dan RTO ≤4 jam merupakan target yang harus diukur; jangan klaim tercapai hanya karena backup job sukses.
+7. Target operasional availability 99,9% bulanan memerlukan arsitektur/operasi sesuai; single server tidak cukup sebagai bukti HA. Jelaskan single points of failure dan opsi multi-zone/managed service.
+8. Sizing awal usulan: app/API 4 vCPU/8 GB RAM, worker 2–4 vCPU/4–8 GB, PostgreSQL 4 vCPU/16 GB dengan SSD awal 100 GB, Redis 1–2 GB, dan storage scalable. Pisahkan sizing baseline dan HA, kemudian revisi berdasarkan benchmark. Jangan memberi harga cloud aktual tanpa sumber dan tanggal.
+9. Dokumentasikan estimasi biaya app, database, storage, bandwidth, backup, email, monitoring, security service, dan maintenance secara terpisah; jelaskan currency, asumsi dan rentang. Plafon developer Rp500 juta tidak otomatis mencakup semuanya.
+10. Deployment ke production hanya jika target dan otorisasi tersedia. Jika tidak, serahkan image/config/runbook yang teruji di lokal/staging dan tandai deployment produksi BLOCKED.
+
+PENGUJIAN DAN ACCEPTANCE GATES
+
+Bangun test berdasarkan risiko serta invariant bisnis, bukan sekadar mencerminkan kode. Gunakan PostgreSQL nyata untuk transactional/concurrency tests; jangan hanya SQLite.
+
+Skenario minimum:
+1. Alur lengkap: vendor approved → budget → PR → approval → RFQ/tender → bid → opening → evaluation → award → contract/PO → partial/full receipt → invoice matching → ERP posting sandbox → payment status → report/audit.
+2. Jalur direct purchase dan jasa dengan service acceptance serta policy matching yang sesuai.
+3. Reject, return, resubmit, cancellation, change order, vendor suspension, tender extension, failed tender, partial award, return receipt, credit note, dan contract renewal.
+4. Cross-tenant akses melalui API, attachment, search, export, webhook, job, cache dan foreign-key reference ditolak.
+5. Vendor A tidak dapat melihat/menebak data Vendor B; evaluator/admin biasa tidak dapat membaca commercial envelope sebelum izin pembukaan.
+6. Self-approval ditolak termasuk delegation/reassignment; approval paralel dan quorum benar; perubahan dokumen membatalkan atau mengulang approval sesuai policy.
+7. Dua request concurrent untuk budget, award, receipt dan invoice tidak melanggar limit. Concurrent edit memberikan konflik yang dapat dipahami, bukan lost update.
+8. Retry/double-click/replayed webhook menghasilkan satu efek; out-of-order ERP event tidak mengembalikan status yang lebih lama.
+9. Perhitungan uang, diskon, pajak, kurs, partial quantity dan rounding sesuai golden examples yang didokumentasikan.
+10. Penawaran tepat sebelum/sesudah deadline diuji dengan server clock; scheduler delay tidak membuka celah.
+11. Unauthorized export/download, expired URL, invalid token, suspended user, CSRF, IDOR, malicious file, XML XXE dan spreadsheet injection diuji.
+12. Worker restart, dead-letter/replay, Redis outage, ERP timeout, database failure dan recovery tidak menimbulkan transaksi ganda atau false success.
+13. Fresh installation, migration dari versi sebelumnya, production bootstrap, backup restore drill dan data integrity diperiksa.
+14. Browser E2E tiap peran inti; mobile layouts, keyboard, screen reader smoke checks, dan PDF/export render diperiksa.
+15. Load test baseline 50 req/detik selama 30 menit dengan workload/dataset realistis: target p95 read endpoint umum <500 ms, mutation <1 detik tanpa integrasi eksternal, error <1%. Laporkan hardware, cold/warm cache, dataset, request mix, alat dan hasil aktual. Laporan besar berjalan async dan punya target terpisah. Jika lingkungan tidak mendukung, tandai NOT VERIFIED.
+
+Release gates:
+- Semua modul mandatory memiliki implementasi nyata dan test relevan yang lulus.
+- Tidak ada blocker transaksi, tenant isolation, sealed bids, approval, budget, atau matching.
+- Tidak ada critical/high security finding tanpa risk acceptance eksplisit.
+- Backup restore dan deployment smoke test lulus di lingkungan yang disebutkan.
+- UAT stakeholder serta integrasi ERP nyata belum boleh dicentang jika belum dilakukan.
+- Bedakan “development complete”, “staging verified”, dan “production approved”. Jangan menyebut production-ready jika gate wajib masih BLOCKED.
+
+DELIVERABLE WAJIB
+
+1. Source lengkap frontend/backend, dependency lockfile, migrations, konfigurasi queue/scheduler, dan seed demo terpisah dari production.
+2. Data demo realistis dan deterministic dalam tenant sandbox: role berbeda, vendor, PR, tender, bids, PO, receipt, invoice, failure scenarios. Akun demo hanya lokal/staging dan tidak dibawa ke production.
+3. Docker/Compose, deploy templates, CI pipeline, .env.example, bootstrap scripts, health checks, dan backup/restore scripts.
+4. REQUIREMENTS.md dan traceability matrix; ASSUMPTIONS.md; DECISIONS.md/ADRs; ERD; data dictionary; TSD; architecture diagram; sequence diagram untuk workflow sensitif; OpenAPI; SOAP contracts/examples; ERP field mapping.
+5. Role/permission matrix, state transition tables, approval examples, budget ledger rules, calculation/rounding examples, retention policy configuration, dan threat model.
+6. Test suites, test report aktual, security report, accessibility report, load-test scripts/results, restore-drill evidence, known issues dan risk register.
+7. Panduan operator, administrator, procurement, approver, vendor, receiver, finance dan auditor dalam bahasa Indonesia; troubleshooting, runbook insiden dan upgrade/rollback.
+8. Integration readiness checklist: kontrak/API, credential, source-of-truth, mapping, sandbox tests, real-environment tests, reconciliation, approval pemilik sistem.
+9. RELEASE_CHECKLIST.md; DEPLOYMENT.md; HANDOVER.md; STATUS.md; laporan estimasi infrastruktur dan biaya dengan asumsi/sumber.
+10. Paket source/release yang dapat diunduh dan dijalankan, serta URL staging hanya bila benar-benar tersedia. Jangan mengarang URL, commit, test log, screenshot atau hasil deploy.
+
+FORMAT LAPORAN AKHIR
+
+Berikan ringkasan singkat dan tabel modul: persyaratan, status implementasi, status verifikasi, bukti/path/test, dan blocker. Sertakan cara menjalankan aplikasi, lokasi deliverable, akun demo khusus sandbox, hasil test aktual, keterbatasan, akses/keputusan yang masih dibutuhkan, dan kesimpulan apakah production gate sudah terpenuhi.
+
+Jangan hanya menjawab “selesai” atau “100% production grade”. Kesimpulan harus sesuai bukti. Jangan menyembunyikan mock adapter sebagai integrasi SAP nyata.
+
+INSTRUKSI EKSEKUSI TERAKHIR
+
+Mulai sekarang: periksa workspace, tulis requirement dan asumsi singkat, pilih versi kompatibel yang didukung, lalu implementasikan seluruh baseline di atas secara berurutan sesuai dependensi. Bangun, jalankan, uji, perbaiki, dokumentasikan, dan paketkan hasilnya sampai semua bagian yang dapat dikerjakan di lingkungan ini selesai. Simpan progress agar dapat dilanjutkan tanpa kehilangan pekerjaan. Jangan berhenti setelah membuat rencana atau meminta “lanjutkan” per modul. Jika akses eksternal menghalangi sebagian pekerjaan, selesaikan bagian independen, siapkan adapter serta prosedur koneksi nyata, dan laporkan blocker tersebut dengan jujur.

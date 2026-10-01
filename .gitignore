@@ -1,0 +1,9 @@
+backend/.env
+backend/vendor/
+backend/storage/logs/*
+backend/bootstrap/cache/*.php
+frontend/node_modules/
+frontend/test-results/
+frontend/playwright-report/
+artifacts/
+*.zip
