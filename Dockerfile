@@ -16,7 +16,8 @@ FROM phpbase AS dependencies
 COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
 COPY backend/ ./
-RUN composer dump-autoload --no-dev --optimize --no-interaction
+RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs \
+ && composer dump-autoload --no-dev --optimize --no-interaction
 
 FROM phpbase AS runtime
 COPY --from=dependencies /app /app
