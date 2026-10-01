@@ -22,7 +22,7 @@ Route::prefix('api/v1')->group(function () {
     Route::get('oidc/start', [OidcController::class, 'start'])->middleware('throttle:10,1');
     Route::get('oidc/callback', [OidcController::class, 'callback'])->middleware('throttle:10,1');
     Route::get('csrf', [AuthController::class, 'csrf']);
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('login', [AuthController::class, 'login']);
     Route::post('webhooks/{id}', [IntegrationController::class, 'webhook'])->middleware('throttle:120,1');
     Route::middleware(['tenant', 'throttle:240,1'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
